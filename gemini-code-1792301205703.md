@@ -1,0 +1,29 @@
+---
+name: liora-sku-schema-validator
+description: Connects to the Liora ERP & Website Admin Panel to validate product records, detect duplicate SKUs, verify image assets, and enforce the strict manual LKR discount rule.
+---
+# Liora SKU Schema Validator
+
+Validate product catalog records from the Liora ERP and Website Admin Panel against mandatory schema rules, pricing logic, and duplicate detection thresholds.
+
+## Verification & Execution Procedure
+
+1. Open the Liora ERP Product Catalog table and Website Admin Panel product list.
+2. For each product record, verify the following mandatory fields are non-null:
+   - `product_name` (Title Case, e.g., "Liora Grand Aurelia Block Heel Sandal - Black")
+   - `master_sku` (`LG-FW-[4_DIGIT_CODE]` for Footwear, `LG-HB-[4_DIGIT_CODE]` for Handbags)
+   - `variant_skus` (Appended with `-[COLOR_CODE]-[EU_SIZE]`, e.g., `LG-FW-1042-BLK-38`)
+   - `category` (`Footwear` or `Handbags`)
+   - `unit_cost_lkr` (Numeric > 0)
+   - `retail_price_lkr` (Numeric > `unit_cost_lkr`)
+   - `manual_discount_lkr` (Numeric >= 0; verify `discount_type` is strictly `FIXED_AMOUNT`, never `PERCENTAGE`)
+   - `final_selling_price_lkr` (Must equal `retail_price_lkr - manual_discount_lkr`)
+   - `image_urls` (Minimum 3 resolving HTTPS URLs returning HTTP 200)
+3. Check for duplicate `master_sku`, `variant_skus`, or fuzzy-matched `product_name` strings (>90% similarity).
+4. Output a structured Markdown Exception Table listing any failing SKUs, exact missing/corrupted fields, and the prepared correction payload waiting for Owner approval.
+
+## Exception Table Template
+
+| Master SKU | Variant SKU | Failing Field(s) | Issue Description | Prepared Correction Payload | Approval Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `LG-FW-1042` | `LG-FW-1042-BLK-38` | `discount_type` | Set to `PERCENTAGE` instead of `FIXED_AMOUNT` | `{"discount_type": "FIXED_AMOUNT", "manual_discount_lkr": 1500}` | Pending Owner Approval |
